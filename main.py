@@ -16,6 +16,7 @@ usersTable = mydb["users"]
 otomobilBrandsTable = mydb["otomobilBrands"]
 motorcycleBrandsTable = mydb["motorcycleBrands"]
 suvBrandsTable = mydb["suvBrands"]
+carDetailTable = mydb["carDetails"]
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -51,6 +52,13 @@ def motorcycleBrands():
 def suvBrands():
     suvBrandData = {"res": list(suvBrandsTable.find({}))}
     return suvBrandData
+
+@app.route('/cardetails', methods=['POST'])
+def carDetails():
+    data = request.get_json()
+    id = data['_id']
+    carDetailsData = {"res": list(carDetailTable.find({'_id': id}))}
+    return jsonify(carDetailsData)
 # admin için vehicle ekleme
 
 
