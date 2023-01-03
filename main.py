@@ -30,6 +30,24 @@ def login():
     else:
         return '404'
 
+"""
+def get_sequence(seq_name):
+    return mydb.counters.find_and_modify(query={"_id": seq_name}, update={"$inc": {"seq": 1}}, upsert=True)["seq"]
+"""
+
+
+@app.route('/signin', methods=['POST'])
+def signin():
+    data = request.get_json()
+    count = list(usersTable.find())
+    user = {
+        "_id": len(count) + 1,
+        "role": "user",
+        "userName": data["userName"],
+        "password": data["password"]
+    }
+    usersTable.insert_one(user)
+    return jsonify(user)
 
 # ana sayfa doldurma
 
