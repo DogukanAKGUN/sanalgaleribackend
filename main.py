@@ -2,10 +2,10 @@ import base64
 import datetime
 import http.client
 
-from flask import Flask, jsonify, render_template, request, redirect, session
+from flask import Flask,jsonify,render_template,request,redirect,session
 import pymongo
-from bson.json_util import ObjectId
 import json
+
 
 app = Flask(__name__)
 
@@ -17,6 +17,9 @@ otomobilBrandsTable = mydb["otomobilBrands"]
 motorcycleBrandsTable = mydb["motorcycleBrands"]
 suvBrandsTable = mydb["suvBrands"]
 carDetailTable = mydb["carDetails"]
+vehicleListTable = mydb["vehicleList"]
+favoritesTable = mydb["favorites"]
+
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -29,12 +32,15 @@ def login():
         return jsonify(userCheck)
     else:
         return '404'
-
 """
 def get_sequence(seq_name):
     return mydb.counters.find_and_modify(query={"_id": seq_name}, update={"$inc": {"seq": 1}}, upsert=True)["seq"]
 """
 
+@app.route('/script')
+def script():
+    # TODO: burası sonradan veri doldurmak için script yazılacak
+    return 0
 
 @app.route('/signin', methods=['POST'])
 def signin():
@@ -47,11 +53,9 @@ def signin():
         "password": data["password"]
     }
     usersTable.insert_one(user)
-    return jsonify(user)
+    return {"resultCode":"Ok"}
 
 # ana sayfa doldurma
-
-
 @app.route('/vehicles')
 def vehicles():
     vehicleData = {"res": list(vehiclesTable.find({}))}
@@ -66,6 +70,7 @@ def brands():
 def motorcycleBrands():
     motorcyleBrandData = {"res": list(motorcycleBrandsTable.find({}))}
     return motorcyleBrandData
+
 @app.route('/suvbrands')
 def suvBrands():
     suvBrandData = {"res": list(suvBrandsTable.find({}))}
@@ -74,9 +79,53 @@ def suvBrands():
 @app.route('/cardetails', methods=['POST'])
 def carDetails():
     data = request.get_json()
+    print("data ne",data)
     id = data['_id']
     carDetailsData = {"res": list(carDetailTable.find({'_id': id}))}
+    print("car detail ne : ",carDetailsData)
     return jsonify(carDetailsData)
+
+@app.route('/profile', methods=['POST'])
+def userDetail():
+    data = request.get_json()
+    id = data['_id']
+    user = {"res": list(usersTable.find({'_id': id}))}
+    return user
+
+@app.route('/vehiclelist', methods=['POST'])
+def vehicleList():
+    req = request.get_json()
+    vehicleListData = {"res": list(vehicleListTable.find({"brand": req["brand"], "type": req["type"]}))}
+    print("data", vehicleListData)
+    return vehicleListData
+
+# TODO: Burda kişin favorilerinin içindekileri alıp gelmesi gerekiyor
+
+"""
+@app.route('/favorites',methods=['POST'])
+def favoritesList():
+    req = request.get_json()
+    fav = list(favoritesTable.find({"user_id":req['user_id']},{"ad_id":1,"_id":0}))
+    print("fav ne",list(fav))
+
+    for id in fav:
+        favData = {"res":list(carDetailTable.find({"_id": id["ad_id"]}))}
+    print("list", favData)
+    return jsonify(favData)
+"""
+
+@app.route('/favoritesList',methods=['POST'])
+def favoritesList():
+    req = request.get_json()
+    fav = list(favoritesTable.find({"user_id": req['user_id']}, {"ad_id": 1, "_id": 0}))
+    print("fav",fav)
+    favData= []
+    for id in fav:
+        data = vehicleListTable.find_one({"ad_id": id["ad_id"]})
+        favData.append(data)
+        print("data", data)
+    print("favdata", {"res":favData})
+    return {"res": favData}
 # admin için vehicle ekleme
 
 
@@ -86,7 +135,7 @@ def vehicleAdd():
     id = data['_id']
     title = data['title']
     vehiclesTable.insert_one({'_id': id, 'title': title})
-    return 'OK'
+    return {"resultCode": "Ok"}
 
 
 @app.route('/vehicledelete', methods=['POST'])
@@ -94,7 +143,7 @@ def vehicleDelete():
     data = request.get_json()
     id = data['_id']
     vehiclesTable.delete_one({'_id': id})
-    return 'OK'
+    return {"resultCode": "Ok"}
 
 
 if __name__ == '__main__':
